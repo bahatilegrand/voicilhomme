@@ -22,12 +22,18 @@ import {
   SlidersHorizontal,
   Store,
   Truck,
+  ArrowLeft,
+  Mail,
+  MapPin,
+  Pencil,
+  Phone,
+  Trash2,
   UserRound,
   Users,
   X,
 } from 'lucide-react';
 
-type View = 'dashboard' | 'products' | 'stock' | 'sales' | 'reports';
+type View = 'dashboard' | 'products' | 'stock' | 'sales' | 'clients' | 'reports';
 type ProductStatus = 'En stock' | 'Stock faible' | 'Rupture';
 
 type Product = {
@@ -55,6 +61,7 @@ const navigation = [
   { id: 'products' as View, label: 'Produits & catalogue', icon: Package },
   { id: 'stock' as View, label: 'Mouvements de stock', icon: Boxes },
   { id: 'sales' as View, label: 'Ventes & factures', icon: ShoppingCart },
+  { id: 'clients' as View, label: 'Clients', icon: UserRound },
   { id: 'reports' as View, label: 'Rapports', icon: BarChart3 },
 ];
 
@@ -96,6 +103,18 @@ type DemoCustomer = {
   cartLines: { name: string; quantity: number }[];
 };
 
+type Customer = {
+  id: string;
+  name: string;
+  phone: string;
+  email: string;
+  company: string;
+  address: string;
+  type: 'Particulier' | 'Entreprise';
+  notes: string;
+  registeredAt: string;
+};
+
 type Sale = {
   invoice: string;
   customer: string;
@@ -115,6 +134,13 @@ const initialMovements: Movement[] = [
   { date: 'Aujourd’hui, 10:42', productName: 'Doliprane 1000 mg', lot: 'DLP-2418', type: 'Entrée', quantity: 240, reason: 'Réception commande', user: 'Admin Demo' },
   { date: 'Aujourd’hui, 10:18', productName: 'Spasfon Lyoc', lot: 'SPS-7720', type: 'Sortie', quantity: 2, reason: 'Vente FAC-002841', user: 'J. Kouamé' },
   { date: 'Hier, 16:31', productName: 'Amoxicilline 500 mg', lot: 'AMX-9031', type: 'Ajustement', quantity: 4, reason: 'Inventaire physique', user: 'Admin Demo' },
+];
+
+const initialCustomers: Customer[] = [
+  { id: 'CLI-001', name: 'Mme N. Kouassi', phone: '+243 81 234 56 78', email: 'n.kouassi@email.cd', company: '', address: 'Av. de la Justice, Kinshasa', type: 'Particulier', notes: 'Cliente régulière, allergies aux pénicillines.', registeredAt: '12/03/2026' },
+  { id: 'CLI-002', name: 'M. J. Mukendi', phone: '+243 82 456 78 90', email: 'mukendi.j@email.cd', company: 'Société Générale CD', address: 'Boulevard du 30 Juin, Kinshasa', type: 'Entreprise', notes: 'Crédit partenaire — plafond 500 000 FCFA.', registeredAt: '28/01/2026' },
+  { id: 'CLI-003', name: 'Mlle A. Tshala', phone: '+243 89 678 90 12', email: '', company: '', address: 'Commune de Lemba, Kinshasa', type: 'Particulier', notes: '', registeredAt: '05/09/2026' },
+  { id: 'CLI-004', name: 'Client comptoir', phone: '', email: '', company: '', address: '', type: 'Particulier', notes: 'Client de passage sans dossier.', registeredAt: '—' },
 ];
 
 const DEMO_DURATION = 15 * 60;
@@ -142,6 +168,10 @@ function App() {
   const [showProductForm, setShowProductForm] = useState(false);
   const [showMovementForm, setShowMovementForm] = useState(false);
   const [sessionSeconds, setSessionSeconds] = useState(DEMO_DURATION);
+  const [demoClients, setDemoClients] = useState<Customer[]>(initialCustomers);
+  const [showCustomerForm, setShowCustomerForm] = useState(false);
+  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
 
   const filteredProducts = useMemo(
     () => demoProducts.filter((product) => `${product.name} ${product.dci} ${product.lot}`.toLowerCase().includes(searchTerm.toLowerCase())),
@@ -156,6 +186,7 @@ function App() {
           setDemoCustomers([]);
           setDemoProducts(initialProducts);
           setDemoMovements(initialMovements);
+          setDemoClients(initialCustomers);
           return DEMO_DURATION;
         }
         return remaining - 1;
@@ -180,10 +211,14 @@ function App() {
     setDemoCustomers([]);
     setDemoProducts(initialProducts);
     setDemoMovements(initialMovements);
+    setDemoClients(initialCustomers);
     setSessionSeconds(DEMO_DURATION);
     setShowSalePanel(false);
     setShowProductForm(false);
     setShowMovementForm(false);
+    setShowCustomerForm(false);
+    setEditingCustomer(null);
+    setSelectedCustomerId(null);
     notify('La démonstration a été remise à zéro.');
   };
 
@@ -241,6 +276,31 @@ function App() {
     notify(`Facture simulée créée pour ${customer.name}.`);
   };
 
+  const registerDemoCustomer = (values: Omit<Customer, 'id' | 'registeredAt'>) => {
+    if (editingCustomer) {
+      setDemoClients((current) => current.map((c) => c.id === editingCustomer.id ? { ...c, ...values } : c));
+      setEditingCustomer(null);
+      setShowCustomerForm(false);
+      notify('Client mis à jour avec succès.');
+    } else {
+      const newCustomer: Customer = { ...values, id: `CLI-${String(demoClients.length + 1).padStart(3, '0')}`, registeredAt: 'Aujourd’hui' };
+      setDemoClients((current) => [newCustomer, ...current]);
+      setShowCustomerForm(false);
+      notify('Nouveau client enregistré.');
+    }
+  };
+
+  const deleteDemoCustomer = (id: string) => {
+    setDemoClients((current) => current.filter((c) => c.id !== id));
+    setSelectedCustomerId(null);
+    notify('Client supprimé.');
+  };
+
+  const startEditCustomer = (customer: Customer) => {
+    setEditingCustomer(customer);
+    setShowCustomerForm(true);
+  };
+
   return (
     <div className="app-shell">
       <aside className={`sidebar ${sidebarOpen ? 'sidebar-open' : ''}`}>
@@ -289,6 +349,7 @@ function App() {
           {activeView === 'products' && <ProductsView products={filteredProducts} totalCount={demoProducts.length} alertCount={demoProducts.filter((p) => p.status !== 'En stock').length} searchTerm={searchTerm} setSearchTerm={setSearchTerm} onAdd={() => setShowProductForm(true)} onProductDetail={(name) => notify(`Détail du produit « ${name} » — disponible dans la version connectée.`)} onFilter={() => notify('Filtres avancés à venir dans la version connectée.')} onExport={() => notify('Export CSV généré pour la démonstration.')} />}
           {activeView === 'stock' && <StockView movements={demoMovements} onAction={() => setShowMovementForm(true)} />}
           {activeView === 'sales' && <SalesView salesData={demoSales} customers={demoCustomers} customerCount={demoCustomers.length} onNewSale={() => setShowSalePanel(true)} onSaleDetail={(invoice) => notify(`Détail de la facture ${invoice} — disponible dans la version connectée.`)} />}
+          {activeView === 'clients' && <ClientsView clients={demoClients} salesData={demoSales} onAdd={() => { setEditingCustomer(null); setShowCustomerForm(true); }} onEdit={startEditCustomer} onDetail={(id) => setSelectedCustomerId(id)} />}
           {activeView === 'reports' && <ReportsView salesData={demoSales} products={demoProducts} onExport={() => notify('Rapport exporté pour la démonstration.')} />}
         </div>
       </main>
@@ -296,6 +357,8 @@ function App() {
       {showSalePanel && <QuickSalePanel products={demoProducts} onClose={() => setShowSalePanel(false)} onComplete={registerDemoSale} />}
       {showProductForm && <ProductForm onClose={() => setShowProductForm(false)} onSubmit={registerDemoProduct} />}
       {showMovementForm && <MovementForm products={demoProducts} onClose={() => setShowMovementForm(false)} onSubmit={registerDemoMovement} />}
+      {showCustomerForm && <CustomerForm customer={editingCustomer} onClose={() => { setShowCustomerForm(false); setEditingCustomer(null); }} onSubmit={registerDemoCustomer} />}
+      {selectedCustomerId && <CustomerDetail customer={demoClients.find((c) => c.id === selectedCustomerId)!} salesData={demoSales.filter((s) => s.customer === (demoClients.find((c) => c.id === selectedCustomerId)?.name ?? ''))} onClose={() => setSelectedCustomerId(null)} onEdit={(c) => { setSelectedCustomerId(null); startEditCustomer(c); }} onDelete={deleteDemoCustomer} />}
       {notice && <div className="toast"><span className="toast-check">✓</span>{notice}</div>}
     </div>
   );
@@ -443,6 +506,39 @@ function QuickSalePanel({ products, onClose, onComplete }: { products: Product[]
   };
 
   return <div className="modal-backdrop" onClick={onClose}><form className="sale-panel sale-form" onClick={(event) => event.stopPropagation()} onSubmit={submitSale}><div className="sale-panel-header"><div><div className="eyebrow">Point de vente · Kinshasa</div><h2>Nouvelle vente</h2><p className="panel-intro">Enregistrez le client avant de facturer ses articles.</p></div><button type="button" className="icon-button" onClick={onClose}><X size={19} /></button></div><div className="sale-section-title"><UserRound size={17} /><span>Identité du client</span><small>Informations de démonstration</small></div><div className="customer-grid"><label>Nom complet<input required value={name} onChange={(event) => setName(event.target.value)} placeholder="Ex. Jean Mukendi" /></label><label>Téléphone<input required type="tel" value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="+243 81 000 00 00" /></label><label>Entreprise partenaire<input value={company} onChange={(event) => setCompany(event.target.value)} placeholder="Ex. Société partenaire" /></label><label>Pièce / référence<input value={idNumber} onChange={(event) => setIdNumber(event.target.value)} placeholder="N° de référence" /></label></div><label className="photo-upload"><span className="photo-preview">{photoUrl ? <img src={photoUrl} alt="Aperçu du client" /> : <Camera size={22} />}</span><span><strong>{photoName || 'Ajouter une photo du client'}</strong><small>Optionnel · image temporaire, non conservée après la session</small></span><input type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => handlePhotoChange(event.target.files?.[0])} /></label>{photoError && <div className="form-error">{photoError}</div>}<div className="sale-fields-row"><label>Ordonnance<select value={prescription} onChange={(event) => setPrescription(event.target.value)}><option>Sans ordonnance</option><option>Ordonnance présentée</option><option>Ordonnance à vérifier</option></select></label><label>Mode de paiement<select value={paymentMethod} onChange={(event) => setPaymentMethod(event.target.value)}><option>Mobile Money</option><option>Espèces</option><option>Carte bancaire</option><option>Crédit partenaire</option></select></label></div>{prescription !== 'Sans ordonnance' && <div className="prescription-block"><div className="prescription-heading"><div><strong>Détail de l’ordonnance</strong><span>Renseignez les médicaments réellement pris par le client.</span></div><span className="prescription-badge">{prescription}</span></div><div className="prescription-labels"><span>Médicament</span><span>Qté</span><span>Prix unitaire</span><span>Total</span><span /></div>{prescriptionItems.map((item, index) => <div className="prescription-row" key={`${index}-${item.medication}`}><input required value={item.medication} onChange={(event) => updatePrescriptionItem(index, 'medication', event.target.value)} placeholder="Nom du médicament" /><input required type="number" min="1" value={item.quantity} onChange={(event) => updatePrescriptionItem(index, 'quantity', Number(event.target.value))} /><input required type="number" min="0" value={item.unitPrice} onChange={(event) => updatePrescriptionItem(index, 'unitPrice', Number(event.target.value))} placeholder="FCFA" /><strong>{(item.quantity * item.unitPrice).toLocaleString('fr-FR')} FCFA</strong><button type="button" className="remove-line" onClick={() => setPrescriptionItems((currentItems) => currentItems.length > 1 ? currentItems.filter((_, itemIndex) => itemIndex !== index) : currentItems)} aria-label="Supprimer la ligne">×</button></div>)}<button type="button" className="add-line-button" onClick={() => setPrescriptionItems((currentItems) => [...currentItems, { medication: '', quantity: 1, unitPrice: 0 }])}><Plus size={14} /> Ajouter un médicament</button><div className="prescription-total"><span>Total ordonnance</span><strong>{prescriptionTotal.toLocaleString('fr-FR')} FCFA</strong></div></div>}<div className="sale-section-title cart-title"><ShoppingCart size={17} /><span>Produits demandés</span><small>Disponibilité contrôlée</small></div>{products.map((product) => <div className="sale-line" key={product.name}><div className="sale-product-icon"><Package size={18} /></div><div><strong>{product.name}</strong><span>{product.dci} · Disponible : {product.quantity}</span></div><strong>{product.price}</strong><div className="quantity"><button type="button" onClick={() => updateCartQuantity(product.name, -1)}>-</button><span>{cart[product.name] ?? 0}</span><button type="button" onClick={() => updateCartQuantity(product.name, 1)}>+</button></div></div>)}<div className="sale-total"><span>Total à payer</span><strong>{total.toLocaleString('fr-FR')} FCFA</strong></div><div className="sale-confirmation"><CheckCircle2 size={16} /><span>La facture sera générée et la sortie de stock simulée.</span></div><div className="sale-actions"><button type="button" className="outline-button" onClick={onClose}>Annuler</button><button type="submit" className="primary-button" disabled={total === 0}><CircleDollarSign size={17} /> Facturer et remettre</button></div></form></div>;
+}
+
+function ClientsView({ clients, salesData, onAdd, onEdit, onDetail }: { clients: Customer[]; salesData: Sale[]; onAdd: () => void; onEdit: (customer: Customer) => void; onDetail: (id: string) => void }) {
+  const [search, setSearch] = useState('');
+  const filtered = useMemo(
+    () => clients.filter((c) => `${c.name} ${c.phone} ${c.company} ${c.email}`.toLowerCase().includes(search.toLowerCase())),
+    [clients, search]
+  );
+  const totalRevenue = (name: string) => salesData.filter((s) => s.customer === name).reduce((sum, s) => sum + parsePrice(s.amount), 0);
+  const lastVisit = (name: string) => { const sale = salesData.find((s) => s.customer === name); return sale ? sale.time : '—'; };
+  const enterpriseCount = clients.filter((c) => c.type === 'Entreprise').length;
+
+  return <><PageHeading eyebrow="Fichier clients" title="Clients" description="Gérez les particuliers et entreprises partenaires de votre officine." action={<button className="primary-button" onClick={onAdd}><Plus size={18} /> Ajouter un client</button>} /><div className="stats-strip"><div><Users size={18} /><span><strong>{clients.length}</strong> clients enregistrés</span></div><div><UserRound size={18} /><span><strong>{enterpriseCount}</strong> entreprises partenaires</span></div><div><ShoppingCart size={18} /><span><strong>{salesData.filter((s) => clients.some((c) => c.name === s.customer)).length}</strong> ventes associées</span></div></div><section className="panel table-panel"><div className="table-toolbar"><div className="search-field"><Search size={17} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Rechercher par nom, téléphone, entreprise..." /></div></div><div className="table-wrap"><table><thead><tr><th>Client</th><th>Téléphone</th><th>Type</th><th>Entreprise</th><th>CA cumulé</th><th>Dernière visite</th><th /></tr></thead><tbody>{filtered.map((client) => <tr key={client.id}><td><div className="product-cell"><div className="customer-avatar">{client.name.charAt(0).toUpperCase()}</div><div><strong>{client.name}</strong><span>{client.id} · depuis {client.registeredAt}</span></div></div></td><td>{client.phone || '—'}</td><td><span className={`status-pill ${client.type === 'Entreprise' ? 'warning' : 'success'}`}><i />{client.type}</span></td><td>{client.company || '—'}</td><td><strong>{totalRevenue(client.name).toLocaleString('fr-FR')} FCFA</strong></td><td className="table-subtext">{lastVisit(client.name)}</td><td><button className="more-button" onClick={() => onDetail(client.id)}>•••</button></td></tr>)}</tbody></table></div></section></>;
+}
+
+function CustomerForm({ customer, onClose, onSubmit }: { customer: Customer | null; onClose: () => void; onSubmit: (values: Omit<Customer, 'id' | 'registeredAt'>) => void }) {
+  const [form, setForm] = useState({
+    name: customer?.name ?? '',
+    phone: customer?.phone ?? '',
+    email: customer?.email ?? '',
+    company: customer?.company ?? '',
+    address: customer?.address ?? '',
+    type: customer?.type ?? 'Particulier' as Customer['type'],
+    notes: customer?.notes ?? '',
+  });
+  const update = (field: keyof typeof form, value: string) => setForm((current) => ({ ...current, [field]: value }));
+
+  return <div className="modal-backdrop" onClick={onClose}><form className="form-panel" onClick={(event) => event.stopPropagation()} onSubmit={(event) => { event.preventDefault(); onSubmit(form); }}><div className="form-panel-header"><div><div className="eyebrow">Fichier clients</div><h2>{customer ? 'Modifier le client' : 'Ajouter un client'}</h2><p>Les informations restent disponibles pendant la session.</p></div><button type="button" className="icon-button" onClick={onClose}><X size={19} /></button></div><div className="form-grid"><label>Nom complet<input required value={form.name} onChange={(event) => update('name', event.target.value)} placeholder="Ex. Jean Mukendi" /></label><label>Téléphone<input required type="tel" value={form.phone} onChange={(event) => update('phone', event.target.value)} placeholder="+243 81 000 00 00" /></label><label>Email<input type="email" value={form.email} onChange={(event) => update('email', event.target.value)} placeholder="ex. client@email.cd" /></label><label>Entreprise partenaire<input value={form.company} onChange={(event) => update('company', event.target.value)} placeholder="Ex. Société partenaire" /></label><label>Type de client<select value={form.type} onChange={(event) => update('type', event.target.value)}><option>Particulier</option><option>Entreprise</option></select></label><label>Adresse<input value={form.address} onChange={(event) => update('address', event.target.value)} placeholder="Adresse postale" /></label><label className="full-field">Notes / observations<input value={form.notes} onChange={(event) => update('notes', event.target.value)} placeholder="Allergies, préférences, conditions de crédit..." /></label></div><div className="form-panel-actions"><button type="button" className="outline-button" onClick={onClose}>Annuler</button><button type="submit" className="primary-button"><Plus size={17} /> {customer ? 'Enregistrer' : 'Ajouter le client'}</button></div></form></div>;
+}
+
+function CustomerDetail({ customer, salesData, onClose, onEdit, onDelete }: { customer: Customer; salesData: Sale[]; onClose: () => void; onEdit: (customer: Customer) => void; onDelete: (id: string) => void }) {
+  const totalCA = salesData.reduce((sum, s) => sum + parsePrice(s.amount), 0);
+  return <div className="modal-backdrop" onClick={onClose}><div className="form-panel customer-detail-panel" onClick={(event) => event.stopPropagation()}><div className="form-panel-header customer-detail-header"><button type="button" className="icon-button" onClick={onClose}><ArrowLeft size={19} /></button><div><div className="eyebrow">Fiche client</div><h2>{customer.name}</h2><p>{customer.id} · enregistré le {customer.registeredAt}</p></div></div><div className="customer-detail-hero"><div className="customer-detail-avatar">{customer.name.charAt(0).toUpperCase()}</div><span className={`status-pill ${customer.type === 'Entreprise' ? 'warning' : 'success'}`}><i />{customer.type}</span></div><div className="customer-info-grid"><div className="info-item"><Phone size={15} /><div><span>Téléphone</span><strong>{customer.phone || '—'}</strong></div></div><div className="info-item"><Mail size={15} /><div><span>Email</span><strong>{customer.email || '—'}</strong></div></div><div className="info-item"><MapPin size={15} /><div><span>Adresse</span><strong>{customer.address || '—'}</strong></div></div><div className="info-item"><Store size={15} /><div><span>Entreprise</span><strong>{customer.company || '—'}</strong></div></div></div>{customer.notes && <div className="customer-notes"><strong>Notes</strong><p>{customer.notes}</p></div>}<div className="customer-stats"><div><span>Ventes associées</span><strong>{salesData.length}</strong></div><div><span>CA cumulé</span><strong>{totalCA.toLocaleString('fr-FR')} FCFA</strong></div></div><div className="customer-history"><h3>Historique d’achats</h3>{salesData.length === 0 ? <p className="empty-state">Aucune vente enregistrée pour ce client.</p> : <div className="table-wrap"><table><thead><tr><th>Facture</th><th>Articles</th><th>Montant</th><th>Paiement</th><th>Heure</th></tr></thead><tbody>{salesData.map((sale) => <tr key={sale.invoice}><td><strong className="invoice-number">{sale.invoice}</strong></td><td>{sale.items}</td><td><strong>{sale.amount}</strong></td><td><span className="payment-badge">{sale.method}</span></td><td>{sale.time}</td></tr>)}</tbody></table></div>}</div><div className="form-panel-actions"><button type="button" className="outline-button danger-outline" onClick={() => onDelete(customer.id)}>Supprimer</button><button type="button" className="primary-button" onClick={() => onEdit(customer)}><Pencil size={17} /> Modifier</button></div></div></div>;
 }
 
 export default App;
