@@ -33,7 +33,7 @@ import {
   X,
 } from 'lucide-react';
 
-type View = 'dashboard' | 'products' | 'stock' | 'sales' | 'clients' | 'reports';
+type View = 'dashboard' | 'products' | 'stock' | 'sales' | 'clients' | 'suppliers' | 'reports';
 type ProductStatus = 'En stock' | 'Stock faible' | 'Rupture';
 
 type Product = {
@@ -62,6 +62,7 @@ const navigation = [
   { id: 'stock' as View, label: 'Mouvements de stock', icon: Boxes },
   { id: 'sales' as View, label: 'Ventes & factures', icon: ShoppingCart },
   { id: 'clients' as View, label: 'Clients', icon: UserRound },
+  { id: 'suppliers' as View, label: 'Fournisseurs', icon: Truck },
   { id: 'reports' as View, label: 'Rapports', icon: BarChart3 },
 ];
 
@@ -115,6 +116,27 @@ type Customer = {
   registeredAt: string;
 };
 
+type Supplier = {
+  id: string;
+  name: string;
+  contact: string;
+  phone: string;
+  email: string;
+  address: string;
+  category: string;
+  status: 'Actif' | 'Inactif';
+  notes: string;
+};
+
+type SupplierOrder = {
+  id: string;
+  supplierId: string;
+  date: string;
+  items: string;
+  amount: string;
+  status: 'En attente' | 'Reçue' | 'Annulée';
+};
+
 type Sale = {
   invoice: string;
   customer: string;
@@ -141,6 +163,19 @@ const initialCustomers: Customer[] = [
   { id: 'CLI-002', name: 'M. J. Mukendi', phone: '+243 82 456 78 90', email: 'mukendi.j@email.cd', company: 'Société Générale CD', address: 'Boulevard du 30 Juin, Kinshasa', type: 'Entreprise', notes: 'Crédit partenaire — plafond 500 000 FCFA.', registeredAt: '28/01/2026' },
   { id: 'CLI-003', name: 'Mlle A. Tshala', phone: '+243 89 678 90 12', email: '', company: '', address: 'Commune de Lemba, Kinshasa', type: 'Particulier', notes: '', registeredAt: '05/09/2026' },
   { id: 'CLI-004', name: 'Client comptoir', phone: '', email: '', company: '', address: '', type: 'Particulier', notes: 'Client de passage sans dossier.', registeredAt: '—' },
+];
+
+const initialSuppliers: Supplier[] = [
+  { id: 'FRN-001', name: 'Laborex RDC', contact: 'M. K. Kabongo', phone: '+243 81 100 20 30', email: 'commandes@laborex.cd', address: 'Av. de l’Échangeur, Kinshasa', category: 'Médicaments génériques', status: 'Actif', notes: 'Délai de livraison 48h. Remise volume 5%.' },
+  { id: 'FRN-002', name: 'Pharmaland Distribution', contact: 'Mme L. Bitumba', phone: '+243 82 200 40 50', email: 'info@pharmaland.cd', address: 'Industriel Boulevard, Kinshasa', category: 'Parapharmacie', status: 'Actif', notes: 'Livreur dédié le mardi et vendredi.' },
+  { id: 'FRN-003', name: 'Biopharma Congo', contact: 'M. P. Tshisekedi', phone: '+243 89 300 60 70', email: 'contact@biopharma.cd', address: 'Av. Kasa-Vubu, Kinshasa', category: 'Antibiotiques', status: 'Inactif', notes: 'Suspension temporaire — relance prévue.' },
+];
+
+const initialSupplierOrders: SupplierOrder[] = [
+  { id: 'CMD-001', supplierId: 'FRN-001', date: 'Aujourd’hui, 09:15', items: 'Doliprane 1000 mg × 240, Spasfon Lyoc × 100', amount: '856 000 FCFA', status: 'Reçue' },
+  { id: 'CMD-002', supplierId: 'FRN-002', date: 'Hier, 14:30', items: 'Gel hydroalcoolique × 50, Masques × 200', amount: '340 000 FCFA', status: 'En attente' },
+  { id: 'CMD-003', supplierId: 'FRN-001', date: '09/10/2026', items: 'Amoxicilline 500 mg × 120', amount: '420 000 FCFA', status: 'En attente' },
+  { id: 'CMD-004', supplierId: 'FRN-003', date: '02/10/2026', items: 'Coton hydrophile × 80', amount: '96 000 FCFA', status: 'Annulée' },
 ];
 
 const DEMO_DURATION = 15 * 60;
@@ -172,6 +207,11 @@ function App() {
   const [showCustomerForm, setShowCustomerForm] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
+  const [demoSuppliers, setDemoSuppliers] = useState<Supplier[]>(initialSuppliers);
+  const [demoSupplierOrders, setDemoSupplierOrders] = useState<SupplierOrder[]>(initialSupplierOrders);
+  const [showSupplierForm, setShowSupplierForm] = useState(false);
+  const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
+  const [selectedSupplierId, setSelectedSupplierId] = useState<string | null>(null);
 
   const filteredProducts = useMemo(
     () => demoProducts.filter((product) => `${product.name} ${product.dci} ${product.lot}`.toLowerCase().includes(searchTerm.toLowerCase())),
@@ -187,6 +227,8 @@ function App() {
           setDemoProducts(initialProducts);
           setDemoMovements(initialMovements);
           setDemoClients(initialCustomers);
+          setDemoSuppliers(initialSuppliers);
+          setDemoSupplierOrders(initialSupplierOrders);
           return DEMO_DURATION;
         }
         return remaining - 1;
@@ -219,6 +261,11 @@ function App() {
     setShowCustomerForm(false);
     setEditingCustomer(null);
     setSelectedCustomerId(null);
+    setDemoSuppliers(initialSuppliers);
+    setDemoSupplierOrders(initialSupplierOrders);
+    setShowSupplierForm(false);
+    setEditingSupplier(null);
+    setSelectedSupplierId(null);
     notify('La démonstration a été remise à zéro.');
   };
 
@@ -301,6 +348,36 @@ function App() {
     setShowCustomerForm(true);
   };
 
+  const registerDemoSupplier = (values: Omit<Supplier, 'id'>) => {
+    if (editingSupplier) {
+      setDemoSuppliers((current) => current.map((s) => s.id === editingSupplier.id ? { ...s, ...values } : s));
+      setEditingSupplier(null);
+      setShowSupplierForm(false);
+      notify('Fournisseur mis à jour avec succès.');
+    } else {
+      const newSupplier: Supplier = { ...values, id: `FRN-${String(demoSuppliers.length + 1).padStart(3, '0')}` };
+      setDemoSuppliers((current) => [newSupplier, ...current]);
+      setShowSupplierForm(false);
+      notify('Nouveau fournisseur enregistré.');
+    }
+  };
+
+  const deleteDemoSupplier = (id: string) => {
+    setDemoSuppliers((current) => current.filter((s) => s.id !== id));
+    setSelectedSupplierId(null);
+    notify('Fournisseur supprimé.');
+  };
+
+  const startEditSupplier = (supplier: Supplier) => {
+    setEditingSupplier(supplier);
+    setShowSupplierForm(true);
+  };
+
+  const updateOrderStatus = (orderId: string, status: SupplierOrder['status']) => {
+    setDemoSupplierOrders((current) => current.map((o) => o.id === orderId ? { ...o, status } : o));
+    notify(`Commande ${orderId} marquée « ${status} ».`);
+  };
+
   return (
     <div className="app-shell">
       <aside className={`sidebar ${sidebarOpen ? 'sidebar-open' : ''}`}>
@@ -350,6 +427,7 @@ function App() {
           {activeView === 'stock' && <StockView movements={demoMovements} onAction={() => setShowMovementForm(true)} />}
           {activeView === 'sales' && <SalesView salesData={demoSales} customers={demoCustomers} customerCount={demoCustomers.length} onNewSale={() => setShowSalePanel(true)} onSaleDetail={(invoice) => notify(`Détail de la facture ${invoice} — disponible dans la version connectée.`)} />}
           {activeView === 'clients' && <ClientsView clients={demoClients} salesData={demoSales} onAdd={() => { setEditingCustomer(null); setShowCustomerForm(true); }} onEdit={startEditCustomer} onDetail={(id) => setSelectedCustomerId(id)} />}
+          {activeView === 'suppliers' && <SuppliersView suppliers={demoSuppliers} orders={demoSupplierOrders} onAdd={() => { setEditingSupplier(null); setShowSupplierForm(true); }} onEdit={startEditSupplier} onDetail={(id) => setSelectedSupplierId(id)} onOrderStatus={updateOrderStatus} />}
           {activeView === 'reports' && <ReportsView salesData={demoSales} products={demoProducts} onExport={() => notify('Rapport exporté pour la démonstration.')} />}
         </div>
       </main>
@@ -359,6 +437,8 @@ function App() {
       {showMovementForm && <MovementForm products={demoProducts} onClose={() => setShowMovementForm(false)} onSubmit={registerDemoMovement} />}
       {showCustomerForm && <CustomerForm customer={editingCustomer} onClose={() => { setShowCustomerForm(false); setEditingCustomer(null); }} onSubmit={registerDemoCustomer} />}
       {selectedCustomerId && <CustomerDetail customer={demoClients.find((c) => c.id === selectedCustomerId)!} salesData={demoSales.filter((s) => s.customer === (demoClients.find((c) => c.id === selectedCustomerId)?.name ?? ''))} onClose={() => setSelectedCustomerId(null)} onEdit={(c) => { setSelectedCustomerId(null); startEditCustomer(c); }} onDelete={deleteDemoCustomer} />}
+      {showSupplierForm && <SupplierForm supplier={editingSupplier} onClose={() => { setShowSupplierForm(false); setEditingSupplier(null); }} onSubmit={registerDemoSupplier} />}
+      {selectedSupplierId && <SupplierDetail supplier={demoSuppliers.find((s) => s.id === selectedSupplierId)!} orders={demoSupplierOrders.filter((o) => o.supplierId === selectedSupplierId)} onClose={() => setSelectedSupplierId(null)} onEdit={(s) => { setSelectedSupplierId(null); startEditSupplier(s); }} onDelete={deleteDemoSupplier} onOrderStatus={updateOrderStatus} />}
       {notice && <div className="toast"><span className="toast-check">✓</span>{notice}</div>}
     </div>
   );
@@ -539,6 +619,42 @@ function CustomerForm({ customer, onClose, onSubmit }: { customer: Customer | nu
 function CustomerDetail({ customer, salesData, onClose, onEdit, onDelete }: { customer: Customer; salesData: Sale[]; onClose: () => void; onEdit: (customer: Customer) => void; onDelete: (id: string) => void }) {
   const totalCA = salesData.reduce((sum, s) => sum + parsePrice(s.amount), 0);
   return <div className="modal-backdrop" onClick={onClose}><div className="form-panel customer-detail-panel" onClick={(event) => event.stopPropagation()}><div className="form-panel-header customer-detail-header"><button type="button" className="icon-button" onClick={onClose}><ArrowLeft size={19} /></button><div><div className="eyebrow">Fiche client</div><h2>{customer.name}</h2><p>{customer.id} · enregistré le {customer.registeredAt}</p></div></div><div className="customer-detail-hero"><div className="customer-detail-avatar">{customer.name.charAt(0).toUpperCase()}</div><span className={`status-pill ${customer.type === 'Entreprise' ? 'warning' : 'success'}`}><i />{customer.type}</span></div><div className="customer-info-grid"><div className="info-item"><Phone size={15} /><div><span>Téléphone</span><strong>{customer.phone || '—'}</strong></div></div><div className="info-item"><Mail size={15} /><div><span>Email</span><strong>{customer.email || '—'}</strong></div></div><div className="info-item"><MapPin size={15} /><div><span>Adresse</span><strong>{customer.address || '—'}</strong></div></div><div className="info-item"><Store size={15} /><div><span>Entreprise</span><strong>{customer.company || '—'}</strong></div></div></div>{customer.notes && <div className="customer-notes"><strong>Notes</strong><p>{customer.notes}</p></div>}<div className="customer-stats"><div><span>Ventes associées</span><strong>{salesData.length}</strong></div><div><span>CA cumulé</span><strong>{totalCA.toLocaleString('fr-FR')} FCFA</strong></div></div><div className="customer-history"><h3>Historique d’achats</h3>{salesData.length === 0 ? <p className="empty-state">Aucune vente enregistrée pour ce client.</p> : <div className="table-wrap"><table><thead><tr><th>Facture</th><th>Articles</th><th>Montant</th><th>Paiement</th><th>Heure</th></tr></thead><tbody>{salesData.map((sale) => <tr key={sale.invoice}><td><strong className="invoice-number">{sale.invoice}</strong></td><td>{sale.items}</td><td><strong>{sale.amount}</strong></td><td><span className="payment-badge">{sale.method}</span></td><td>{sale.time}</td></tr>)}</tbody></table></div>}</div><div className="form-panel-actions"><button type="button" className="outline-button danger-outline" onClick={() => onDelete(customer.id)}>Supprimer</button><button type="button" className="primary-button" onClick={() => onEdit(customer)}><Pencil size={17} /> Modifier</button></div></div></div>;
+}
+
+function SuppliersView({ suppliers, orders, onAdd, onEdit, onDetail, onOrderStatus }: { suppliers: Supplier[]; orders: SupplierOrder[]; onAdd: () => void; onEdit: (supplier: Supplier) => void; onDetail: (id: string) => void; onOrderStatus: (orderId: string, status: SupplierOrder['status']) => void }) {
+  const [search, setSearch] = useState('');
+  const filtered = useMemo(
+    () => suppliers.filter((s) => `${s.name} ${s.contact} ${s.phone} ${s.category}`.toLowerCase().includes(search.toLowerCase())),
+    [suppliers, search]
+  );
+  const activeCount = suppliers.filter((s) => s.status === 'Actif').length;
+  const pendingOrders = orders.filter((o) => o.status === 'En attente');
+  const pendingAmount = pendingOrders.reduce((sum, o) => sum + parsePrice(o.amount), 0);
+
+  return <><PageHeading eyebrow="Chaîne d’approvisionnement" title="Fournisseurs" description="Gérez vos partenaires d’approvisionnement et suivez les commandes." action={<button className="primary-button" onClick={onAdd}><Plus size={18} /> Ajouter un fournisseur</button>} /><div className="stats-strip"><div><Truck size={18} /><span><strong>{suppliers.length}</strong> fournisseurs</span></div><div><CheckCircle2 size={18} /><span><strong>{activeCount}</strong> actifs</span></div><div><ClipboardList size={18} /><span><strong>{pendingOrders.length}</strong> commandes en attente ({pendingAmount.toLocaleString('fr-FR')} FCFA)</span></div></div><section className="panel table-panel"><div className="panel-heading"><div><h2>Fournisseurs enregistrés</h2><p>Cliquez sur un fournisseur pour voir sa fiche et ses commandes</p></div></div><div className="table-toolbar"><div className="search-field"><Search size={17} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Rechercher par nom, contact, catégorie..." /></div></div><div className="table-wrap"><table><thead><tr><th>Fournisseur</th><th>Contact</th><th>Téléphone</th><th>Catégorie</th><th>Statut</th><th /></tr></thead><tbody>{filtered.map((supplier) => <tr key={supplier.id}><td><div className="product-cell"><div className="supplier-table-icon"><Truck size={16} /></div><div><strong>{supplier.name}</strong><span>{supplier.id}</span></div></div></td><td>{supplier.contact}</td><td>{supplier.phone}</td><td>{supplier.category}</td><td><span className={`status-pill ${supplier.status === 'Actif' ? 'success' : 'danger'}`}><i />{supplier.status}</span></td><td><button className="more-button" onClick={() => onDetail(supplier.id)}>•••</button></td></tr>)}</tbody></table></div></section>{pendingOrders.length > 0 && <section className="panel table-panel"><div className="panel-heading"><div><h2>Commandes en attente</h2><p>Validez la réception ou annulez une commande</p></div></div><div className="table-wrap"><table><thead><tr><th>Commande</th><th>Fournisseur</th><th>Date</th><th>Articles</th><th>Montant</th><th>Statut</th><th /></tr></thead><tbody>{pendingOrders.map((order) => { const supplier = suppliers.find((s) => s.id === order.supplierId); return <tr key={order.id}><td><strong className="invoice-number">{order.id}</strong></td><td>{supplier?.name ?? '—'}</td><td>{order.date}</td><td>{order.items}</td><td><strong>{order.amount}</strong></td><td><span className="status-pill warning"><i />{order.status}</span></td><td><div className="order-actions"><button className="outline-button" onClick={() => onOrderStatus(order.id, 'Reçue')}><CheckCircle2 size={14} /> Reçue</button><button className="outline-button danger-outline" onClick={() => onOrderStatus(order.id, 'Annulée')}><X size={14} /> Annuler</button></div></td></tr>; })}</tbody></table></div></section>}</>;
+}
+
+function SupplierForm({ supplier, onClose, onSubmit }: { supplier: Supplier | null; onClose: () => void; onSubmit: (values: Omit<Supplier, 'id'>) => void }) {
+  const [form, setForm] = useState({
+    name: supplier?.name ?? '',
+    contact: supplier?.contact ?? '',
+    phone: supplier?.phone ?? '',
+    email: supplier?.email ?? '',
+    address: supplier?.address ?? '',
+    category: supplier?.category ?? 'Médicaments génériques',
+    status: supplier?.status ?? 'Actif' as Supplier['status'],
+    notes: supplier?.notes ?? '',
+  });
+  const update = (field: keyof typeof form, value: string) => setForm((current) => ({ ...current, [field]: value }));
+
+  return <div className="modal-backdrop" onClick={onClose}><form className="form-panel" onClick={(event) => event.stopPropagation()} onSubmit={(event) => { event.preventDefault(); onSubmit(form); }}><div className="form-panel-header"><div><div className="eyebrow">Chaîne d’approvisionnement</div><h2>{supplier ? 'Modifier le fournisseur' : 'Ajouter un fournisseur'}</h2><p>Les informations restent disponibles pendant la session.</p></div><button type="button" className="icon-button" onClick={onClose}><X size={19} /></button></div><div className="form-grid"><label>Nom du fournisseur<input required value={form.name} onChange={(event) => update('name', event.target.value)} placeholder="Ex. Laborex RDC" /></label><label>Personne de contact<input required value={form.contact} onChange={(event) => update('contact', event.target.value)} placeholder="Ex. M. K. Kabongo" /></label><label>Téléphone<input required type="tel" value={form.phone} onChange={(event) => update('phone', event.target.value)} placeholder="+243 81 000 00 00" /></label><label>Email<input type="email" value={form.email} onChange={(event) => update('email', event.target.value)} placeholder="ex. commandes@fournisseur.cd" /></label><label>Adresse<input value={form.address} onChange={(event) => update('address', event.target.value)} placeholder="Adresse postale" /></label><label>Catégorie<select value={form.category} onChange={(event) => update('category', event.target.value)}><option>Médicaments génériques</option><option>Parapharmacie</option><option>Antibiotiques</option><option>Matériel médical</option><option>Antalgique</option></select></label><label>Statut<select value={form.status} onChange={(event) => update('status', event.target.value)}><option>Actif</option><option>Inactif</option></select></label><label className="full-field">Notes / conditions<input value={form.notes} onChange={(event) => update('notes', event.target.value)} placeholder="Délai de livraison, remises, conditions de paiement..." /></label></div><div className="form-panel-actions"><button type="button" className="outline-button" onClick={onClose}>Annuler</button><button type="submit" className="primary-button"><Plus size={17} /> {supplier ? 'Enregistrer' : 'Ajouter le fournisseur'}</button></div></form></div>;
+}
+
+function SupplierDetail({ supplier, orders, onClose, onEdit, onDelete, onOrderStatus }: { supplier: Supplier; orders: SupplierOrder[]; onClose: () => void; onEdit: (supplier: Supplier) => void; onDelete: (id: string) => void; onOrderStatus: (orderId: string, status: SupplierOrder['status']) => void }) {
+  const totalAmount = orders.reduce((sum, o) => sum + parsePrice(o.amount), 0);
+  const receivedCount = orders.filter((o) => o.status === 'Reçue').length;
+  const pendingCount = orders.filter((o) => o.status === 'En attente').length;
+  return <div className="modal-backdrop" onClick={onClose}><div className="form-panel customer-detail-panel" onClick={(event) => event.stopPropagation()}><div className="form-panel-header customer-detail-header"><button type="button" className="icon-button" onClick={onClose}><ArrowLeft size={19} /></button><div><div className="eyebrow">Fiche fournisseur</div><h2>{supplier.name}</h2><p>{supplier.id} · {supplier.category}</p></div></div><div className="customer-detail-hero"><div className="supplier-detail-avatar"><Truck size={26} /></div><span className={`status-pill ${supplier.status === 'Actif' ? 'success' : 'danger'}`}><i />{supplier.status}</span></div><div className="customer-info-grid"><div className="info-item"><UserRound size={15} /><div><span>Contact</span><strong>{supplier.contact}</strong></div></div><div className="info-item"><Phone size={15} /><div><span>Téléphone</span><strong>{supplier.phone}</strong></div></div><div className="info-item"><Mail size={15} /><div><span>Email</span><strong>{supplier.email || '—'}</strong></div></div><div className="info-item"><MapPin size={15} /><div><span>Adresse</span><strong>{supplier.address || '—'}</strong></div></div></div>{supplier.notes && <div className="customer-notes"><strong>Notes</strong><p>{supplier.notes}</p></div>}<div className="customer-stats four-col"><div><span>Commandes totales</span><strong>{orders.length}</strong></div><div><span>Reçues</span><strong>{receivedCount}</strong></div><div><span>En attente</span><strong>{pendingCount}</strong></div><div><span>Montant cumulé</span><strong>{totalAmount.toLocaleString('fr-FR')} FCFA</strong></div></div><div className="customer-history"><h3>Historique des commandes</h3>{orders.length === 0 ? <p className="empty-state">Aucune commande enregistrée pour ce fournisseur.</p> : <div className="table-wrap"><table><thead><tr><th>Commande</th><th>Date</th><th>Articles</th><th>Montant</th><th>Statut</th><th /></tr></thead><tbody>{orders.map((order) => <tr key={order.id}><td><strong className="invoice-number">{order.id}</strong></td><td>{order.date}</td><td>{order.items}</td><td><strong>{order.amount}</strong></td><td><span className={`status-pill ${order.status === 'Reçue' ? 'success' : order.status === 'En attente' ? 'warning' : 'danger'}`}><i />{order.status}</span></td><td>{order.status === 'En attente' ? <div className="order-actions"><button className="outline-button" onClick={() => onOrderStatus(order.id, 'Reçue')}><CheckCircle2 size={14} /> Reçue</button><button className="outline-button danger-outline" onClick={() => onOrderStatus(order.id, 'Annulée')}><X size={14} /></button></div> : <span className="table-subtext">—</span>}</td></tr>)}</tbody></table></div>}</div><div className="form-panel-actions"><button type="button" className="outline-button danger-outline" onClick={() => onDelete(supplier.id)}><Trash2 size={17} /> Supprimer</button><button type="button" className="primary-button" onClick={() => onEdit(supplier)}><Pencil size={17} /> Modifier</button></div></div></div>;
 }
 
 export default App;
